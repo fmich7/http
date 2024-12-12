@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bytes"
@@ -25,9 +25,6 @@ func ReadRequest(conn net.Conn) ([]byte, error) {
 
 	for {
 		n, err := conn.Read(tmp)
-		if n > 0 {
-			buf.Write(tmp[:n])
-		}
 
 		if err != nil {
 			if err == io.EOF {
@@ -35,8 +32,12 @@ func ReadRequest(conn net.Conn) ([]byte, error) {
 			}
 			return nil, fmt.Errorf("read error: %w", err)
 		}
-	}
 
+		buf.Write(tmp[:n])
+		if bytes.Contains(buf.Bytes(), []byte("\r\n\r\n")) {
+			break
+		}
+	}
 	return buf.Bytes(), nil
 }
 
@@ -89,6 +90,21 @@ func ParseRequest(conn net.Conn) (HTTPRequest, error) {
 		Headers:         headers,
 		Body:            body,
 	}, nil
+}
+
+func (r HTTPRequest) String() string {
+	headers := ""
+	for k, v := range r.Headers {
+		headers += fmt.Sprintf("%s: %s\n", k, v)
+	}
+
+	req := fmt.Sprintf("%s %s %s\n%s", r.Method, r.URL, r.ProtocolVersion, headers)
+
+	if len(r.Body) > 0 {
+		req += fmt.Sprintf("\n\n%s", r.Body)
+	}
+
+	return req
 }
 
 func isEqualHTTPRequest(a, b HTTPRequest) bool {
