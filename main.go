@@ -9,9 +9,9 @@ import (
 func main() {
 
 	router := server.NewHTTPRouter()
-	s := server.NewServer(":3000", router)
+	s := server.NewServer(":3001", router)
 	router.AddEndpoint("GET", "/", func(r server.HTTPRequest) server.HTTPResponse {
-		content := []byte("ALL GOOD G")
+		content := []byte("ALL GOOD G\n")
 		return server.HTTPResponse{
 			StatusCode: 200,
 			Headers:    map[string]string{"Content-Type": "text/plain", "Content-Length": fmt.Sprintf("%d", len(content))},

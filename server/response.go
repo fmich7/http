@@ -11,35 +11,38 @@ type HTTPResponse struct {
 	Body       []byte
 }
 
+// StatusDescription returns a status description for the given status code
 func StatusDescription(code int) (string, error) {
-	m := map[int]string{
-		200: "OK",
-		404: "Not Found",
+	switch code {
+	case 200:
+		return "OK", nil
+	case 404:
+		return "Not Found", nil
+	case 500:
+		return "Internal Server Error", nil
+	default:
+		return "", fmt.Errorf("Unknown status code: %d", code)
 	}
-
-	if desc, ok := m[code]; ok {
-		return desc, nil
-	}
-
-	return "", fmt.Errorf("Invalid response code (%d)", code)
 }
 
-// Convert HTTPResponse object to string
+// String converts the HTTPResponse to a string
 func (r HTTPResponse) String() string {
 	desc, err := StatusDescription(r.StatusCode)
 	if err != nil {
 		panic(err)
 	}
+
 	// Add status line
-	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n\r\n\r\n", r.StatusCode, desc)
+	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.StatusCode, desc)
 
 	// Add headers to response
 	for k, v := range r.Headers {
 		response += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	// Add data to response body
-	response += "\r\n" + string(r.Body)
+	// Separate with headers, add body
+	response += "\r\n"
+	response += string(r.Body)
 
 	return response
 }
