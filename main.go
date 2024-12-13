@@ -9,9 +9,11 @@ import (
 func main() {
 
 	router := server.NewHTTPRouter()
-	s := server.NewServer(":3001", router)
-	router.AddEndpoint("GET", "/", func(r server.HTTPRequest) server.HTTPResponse {
-		content := []byte("ALL GOOD G\n")
+	s := server.NewServer(":3000", router)
+
+	router.HandlerFunc("GET", "/a/{asd}", func(r server.HTTPRequest, params map[string]string) server.HTTPResponse {
+		content := []byte(fmt.Sprintln(params["asd"]))
+		fmt.Println(r.Body)
 		return server.HTTPResponse{
 			StatusCode: 200,
 			Headers:    map[string]string{"Content-Type": "text/plain", "Content-Length": fmt.Sprintf("%d", len(content))},

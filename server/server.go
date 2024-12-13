@@ -63,7 +63,7 @@ func (s *Server) handleConnection(conn net.Conn) error {
 		return fmt.Errorf("Failed to parse request: %s\n", err)
 	}
 
-	handler := s.router.GetHandler(req)
+	handler, params := s.router.GetHandler(req)
 
 	var response HTTPResponse
 	if handler == nil {
@@ -71,7 +71,7 @@ func (s *Server) handleConnection(conn net.Conn) error {
 			StatusCode: 404,
 		}
 	} else {
-		response = handler(req)
+		response = handler(req, params)
 	}
 
 	if err := response.Write(conn); err != nil {
