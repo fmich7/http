@@ -12,11 +12,13 @@ func TestStatusDescription(t *testing.T) {
 	}{
 		{200, "OK"},
 		{404, "Not Found"},
+		{400, "Bad Request"},
+		{500, "Internal Server Error"},
 		{1337, ""},
 	}
 
 	for _, v := range tests {
-		if got, _ := StatusDescription(v.input); got != v.expected {
+		if got := StatusDescription(v.input); got != v.expected {
 			t.Errorf("Failed test [%d], want %s got %s\n", v.input, v.expected, got)
 		}
 	}

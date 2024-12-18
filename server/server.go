@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-// TCP Server type
+// TCP Server
 type Server struct {
 	listenAddr string
 	listener   net.Listener
@@ -14,7 +14,7 @@ type Server struct {
 	router     *HTTPRouter
 }
 
-// NewServer return new server object
+// NewServer returns a new server object
 func NewServer(listenAddr string, router *HTTPRouter) *Server {
 	return &Server{
 		listenAddr: listenAddr,
@@ -23,11 +23,13 @@ func NewServer(listenAddr string, router *HTTPRouter) *Server {
 	}
 }
 
-// Start method starts server
+// Start method starts the server
 func (s *Server) Start() error {
+	defer close(s.quitch)
+
 	listener, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
-		log.Fatalln("Error starting tcp server:", err)
+		return fmt.Errorf("error starting tcp server: %s", err)
 	}
 	defer listener.Close()
 
@@ -54,29 +56,35 @@ func (s *Server) acceptLoop() {
 	}
 }
 
-// handleConnections handles incoming connection (request)
-func (s *Server) handleConnection(conn net.Conn) error {
+// handleConnections handles incoming connections (requests)
+func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	req, err := ParseRequest(conn)
 	if err != nil {
-		return fmt.Errorf("Failed to parse request: %s\n", err)
+		log.Printf("Failed to parse request from %s: %v", conn.RemoteAddr(), err)
+		response := HTTPResponse{
+			StatusCode: 400,
+			Body:       []byte(StatusDescription(400) + "\n"),
+		}
+		response.Write(conn)
+		return
 	}
 
 	handler, params := s.router.GetHandler(req)
 
 	var response HTTPResponse
 	if handler == nil {
+		log.Printf("No handler found for path: %s", req.URL)
 		response = HTTPResponse{
 			StatusCode: 404,
+			Body:       []byte(StatusDescription(404) + "\n"),
 		}
 	} else {
 		response = handler(req, params)
 	}
 
 	if err := response.Write(conn); err != nil {
-		return fmt.Errorf("Error processing reponse: %s\n", err)
+		log.Printf("Error writing response to %s: %v", conn.RemoteAddr(), err)
 	}
-
-	return nil
 }

@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"net"
+	"io"
 )
 
 type HTTPResponse struct {
@@ -12,25 +12,24 @@ type HTTPResponse struct {
 }
 
 // StatusDescription returns a status description for the given status code
-func StatusDescription(code int) (string, error) {
+func StatusDescription(code int) string {
 	switch code {
 	case 200:
-		return "OK", nil
+		return "OK"
+	case 400:
+		return "Bad Request"
 	case 404:
-		return "Not Found", nil
+		return "Not Found"
 	case 500:
-		return "Internal Server Error", nil
+		return "Internal Server Error"
 	default:
-		return "", fmt.Errorf("Unknown status code: %d", code)
+		return ""
 	}
 }
 
 // String converts the HTTPResponse to a string
 func (r HTTPResponse) String() string {
-	desc, err := StatusDescription(r.StatusCode)
-	if err != nil {
-		panic(err)
-	}
+	desc := StatusDescription(r.StatusCode)
 
 	// Add status line
 	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.StatusCode, desc)
@@ -48,7 +47,7 @@ func (r HTTPResponse) String() string {
 }
 
 // Send response to connection
-func (r HTTPResponse) Write(conn net.Conn) error {
-	_, err := conn.Write([]byte(r.String()))
+func (r HTTPResponse) Write(w io.Writer) error {
+	_, err := w.Write([]byte(r.String()))
 	return err
 }

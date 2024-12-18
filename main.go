@@ -20,5 +20,11 @@ func main() {
 			Body:       content,
 		}
 	})
+	router.HandlerFunc("GET", "/echo", func(h server.HTTPRequest, m map[string]string) server.HTTPResponse {
+		return server.HTTPResponse{
+			StatusCode: 200,
+			Body:       []byte("Hello"),
+		}
+	})
 	s.Start()
 }
