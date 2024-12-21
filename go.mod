@@ -1,3 +1,3 @@
-module github.com/fmich7/http-server
+module github.com/fmich7/http
 
-go 1.23.3
+go 1.23

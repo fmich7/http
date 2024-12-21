@@ -3,25 +3,25 @@ package main
 import (
 	"fmt"
 
-	"github.com/fmich7/http-server/server"
+	http "github.com/fmich7/http/pkg"
 )
 
 func main() {
 
-	router := server.NewHTTPRouter()
-	s := server.NewServer(":3000", router)
+	router := http.NewHTTPRouter()
+	s := http.NewServer(":3000", router)
 
-	router.HandlerFunc("GET", "/a/{asd}", func(r server.HTTPRequest, params map[string]string) server.HTTPResponse {
+	router.HandlerFunc("GET", "/a/{asd}", func(r http.HTTPRequest, params map[string]string) http.HTTPResponse {
 		content := []byte(fmt.Sprintln(params["asd"]))
 		fmt.Println(r.Body)
-		return server.HTTPResponse{
+		return http.HTTPResponse{
 			StatusCode: 200,
 			Headers:    map[string]string{"Content-Type": "text/plain", "Content-Length": fmt.Sprintf("%d", len(content))},
 			Body:       content,
 		}
 	})
-	router.HandlerFunc("GET", "/echo", func(h server.HTTPRequest, m map[string]string) server.HTTPResponse {
-		return server.HTTPResponse{
+	router.HandlerFunc("GET", "/echo", func(h http.HTTPRequest, m map[string]string) http.HTTPResponse {
+		return http.HTTPResponse{
 			StatusCode: 200,
 			Body:       []byte("Hello"),
 		}
