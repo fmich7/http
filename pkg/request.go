@@ -62,11 +62,11 @@ func ParseRequest(conn net.Conn) (HTTPRequest, error) {
 	protocol := reqLineVals[2]
 	headers := make(map[string]string)
 	body := make([]byte, 0)
-
 	// Get header values
 	i := 1
-	for ; i < len(splitData); i++ {
+	for i < len(splitData) {
 		if len(splitData[i]) == 0 {
+			i++
 			break
 		}
 
@@ -76,11 +76,12 @@ func ParseRequest(conn net.Conn) (HTTPRequest, error) {
 		}
 
 		headers[string(headerLineValues[0])] = string(headerLineValues[1])
+		i++
 	}
 
 	// Copy data to body if there is any
 	if i < len(splitData) {
-		copy(body, splitData[i])
+		body = splitData[i]
 	}
 
 	return HTTPRequest{

@@ -65,38 +65,14 @@ func TestParseRequest(t *testing.T) {
 		server, _ := mockConn(input)
 		defer server.Close()
 
-		httpRequest, err := ParseRequest(server)
-		t.Log(httpRequest)
+		_, err := ParseRequest(server)
 		if err == nil {
-			t.Fatal("Expected an error", err)
+			t.Fatal("Expected an error, got nil")
 		}
 	})
 
-	t.Run("normal request", func(t *testing.T) {
-		input := "GET /index.html HTTP/1.1\r\n\r\n"
-		server, _ := mockConn(input)
-		defer server.Close()
-
-		got, err := ParseRequest(server)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		want := HTTPRequest{
-			"GET",
-			"/index.html",
-			"HTTP/1.1",
-			make(map[string]string),
-			make([]byte, 0),
-		}
-
-		if !isEqualHTTPRequest(want, got) {
-			t.Fatalf("Want %v, want %v ", want, got)
-		}
-	})
-
-	t.Run("normal request", func(t *testing.T) {
-		input := "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\nHello, Go!"
+	t.Run("normal GET request", func(t *testing.T) {
+		input := "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n"
 		server, _ := mockConn(input)
 		defer server.Close()
 
@@ -109,15 +85,41 @@ func TestParseRequest(t *testing.T) {
 			Method:          "GET",
 			URL:             "/index.html",
 			ProtocolVersion: "HTTP/1.1",
-			Headers:         map[string]string{"Host": "exampleeeeee.com"},
-			Body:            []byte("Hello, Go!"),
+			Headers:         map[string]string{"Host": "example.com"},
+			Body:            []byte{},
 		}
 
-		if isEqualHTTPRequest(want, got) {
-			t.Fatal("These requests does not contain same values!")
+		if !isEqualHTTPRequest(want, got) {
+			t.Fatalf("Want %v, got %v", want, got)
 		}
 	})
 
+	t.Run("normal POST request with body", func(t *testing.T) {
+		input := "POST /submit HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/json\r\nContent-Length: 18\r\n\r\n{\"key\":\"value\"}"
+		server, _ := mockConn(input)
+		defer server.Close()
+
+		got, err := ParseRequest(server)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := HTTPRequest{
+			Method:          "POST",
+			URL:             "/submit",
+			ProtocolVersion: "HTTP/1.1",
+			Headers: map[string]string{
+				"Host":           "example.com",
+				"Content-Type":   "application/json",
+				"Content-Length": "18",
+			},
+			Body: []byte("{\"key\":\"value\"}"),
+		}
+
+		if !isEqualHTTPRequest(want, got) {
+			t.Fatalf("Want %v, got %v", want, got)
+		}
+	})
 }
 
 func TestHTTPRequestComparison(t *testing.T) {

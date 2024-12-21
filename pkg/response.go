@@ -11,6 +11,13 @@ type HTTPResponse struct {
 	Body       []byte
 }
 
+const (
+	StatusOK          = 200
+	StatusBadRequest  = 400
+	StatusNotFound    = 404
+	StatusServerError = 500
+)
+
 // StatusDescription returns a status description for the given status code
 func StatusDescription(code int) string {
 	switch code {
