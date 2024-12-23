@@ -2,15 +2,11 @@ package http
 
 import (
 	"fmt"
-	"io"
+	"net"
+	"sort"
 )
 
-type HTTPResponse struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       []byte
-}
-
+// Status codes
 const (
 	StatusOK          = 200
 	StatusBadRequest  = 400
@@ -34,27 +30,84 @@ func StatusDescription(code int) string {
 	}
 }
 
-// String converts the HTTPResponse to a string
-func (r HTTPResponse) String() string {
-	desc := StatusDescription(r.StatusCode)
-
-	// Add status line
-	response := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.StatusCode, desc)
-
-	// Add headers to response
-	for k, v := range r.Headers {
-		response += fmt.Sprintf("%s: %s\r\n", k, v)
-	}
-
-	// Separate with headers, add body
-	response += "\r\n"
-	response += string(r.Body)
-
-	return response
+type ResponseWriter interface {
+	Write([]byte) (int, error)   // Write sends response to conn
+	WriteHeader(statusCode int)  // Sets status code of response
+	SetHeader(key, value string) // Sets headers of repsonse
 }
 
-// Send response to connection
-func (r HTTPResponse) Write(w io.Writer) error {
-	_, err := w.Write([]byte(r.String()))
-	return err
+// DefaultResponseWriter implements ResponseWriter interface
+type DefaultResponseWriter struct {
+	conn        net.Conn
+	statusCode  int
+	headers     map[string]string
+	wroteHeader bool
+}
+
+// Returns new response writer
+func NewResponseWriter(conn net.Conn) *DefaultResponseWriter {
+	return &DefaultResponseWriter{
+		conn:    conn,
+		headers: make(map[string]string),
+	}
+}
+
+// WriteHeader writes status code of response
+func (rw *DefaultResponseWriter) WriteHeader(statusCode int) {
+	if rw.wroteHeader {
+		return
+	}
+	rw.statusCode = statusCode
+	rw.wroteHeader = true
+}
+
+// SetHeader sets headers
+func (rw *DefaultResponseWriter) SetHeader(key, value string) {
+	rw.headers[key] = value
+}
+
+// Write sends resonse to client
+func (rw *DefaultResponseWriter) Write(body []byte) (int, error) {
+	if !rw.wroteHeader {
+		rw.WriteHeader(200)
+	}
+
+	if _, exists := rw.headers["Content-Type"]; !exists {
+		rw.SetHeader("Content-Type", "text/plain")
+	}
+
+	if _, exists := rw.headers["Content-Length"]; !exists {
+		rw.SetHeader("Content-Length", fmt.Sprintf("%d", len(body)))
+	}
+
+	responseLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", rw.statusCode, StatusDescription(rw.statusCode))
+	if _, err := rw.conn.Write([]byte(responseLine)); err != nil {
+		return 0, fmt.Errorf("failed to write response line: %w", err)
+	}
+
+	// Get the keys and sort them
+	keys := make([]string, 0, len(rw.headers))
+	for key := range rw.headers {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	// Write headers in sorted order
+	for _, key := range keys {
+		headerLine := fmt.Sprintf("%s: %s\r\n", key, rw.headers[key])
+		if _, err := rw.conn.Write([]byte(headerLine)); err != nil {
+			return 0, fmt.Errorf("failed to write header: %w", err)
+		}
+	}
+
+	if _, err := rw.conn.Write([]byte("\r\n")); err != nil {
+		return 0, fmt.Errorf("failed to write blank line after headers: %w", err)
+	}
+
+	n, err := rw.conn.Write(body)
+	if err != nil {
+		return n, fmt.Errorf("failed to write body: %w", err)
+	}
+
+	return n, nil
 }

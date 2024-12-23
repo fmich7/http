@@ -1,9 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"io"
 	"net"
-	"sync"
 	"testing"
 	"time"
 )
@@ -53,11 +53,8 @@ func TestHandleConnection(t *testing.T) {
 	s := NewServer(":0", NewHTTPRouter())
 
 	// Register the handler before sending any requests
-	s.router.HandlerFunc("GET", "/echo", func(h HTTPRequest, m map[string]string) HTTPResponse {
-		return HTTPResponse{
-			StatusCode: 200,
-			Body:       []byte("Hello\n"),
-		}
+	s.router.HandlerFunc("GET", "/echo", func(r HTTPRequest, w ResponseWriter, m map[string]string) {
+		w.Write([]byte("Hello\n"))
 	})
 
 	// Function to handle a connection and return the response
@@ -66,12 +63,8 @@ func TestHandleConnection(t *testing.T) {
 		defer client.Close()
 		defer server.Close()
 
-		var wg sync.WaitGroup
-		wg.Add(1)
-
 		// Run handleConnection in a goroutine
 		go func() {
-			defer wg.Done()
 			s.handleConnection(server)
 		}()
 
@@ -82,14 +75,20 @@ func TestHandleConnection(t *testing.T) {
 		}
 
 		// Read the response from the server side
-		buf := make([]byte, 1024)
-		n, err := client.Read(buf)
-		if err != nil && err != io.EOF {
-			t.Fatalf("Failed to read from client connection: %s", err)
+		var buf bytes.Buffer
+		tmp := make([]byte, 1024)
+		for {
+			n, err := client.Read(tmp)
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				t.Fatalf("Failed to read from client connection: %s", err)
+			}
+			buf.Write(tmp[:n])
 		}
 
-		wg.Wait()
-		return string(buf[:n])
+		return buf.String()
 	}
 
 	tests := []struct {
@@ -97,16 +96,28 @@ func TestHandleConnection(t *testing.T) {
 		data string
 		want string
 	}{
-		{"Bad request body", "INVALID REQUEST\r\n\r\n", "HTTP/1.1 400 Bad Request\r\n\r\nBad Request\n"},
-		{"Invalid path", "GET /unknown HTTP/1.1\r\n\r\n", "HTTP/1.1 404 Not Found\r\n\r\nNot Found\n"},
-		{"Registered path", "GET /echo HTTP/1.1\r\n\r\n", "HTTP/1.1 200 OK\r\n\r\nHello\n"},
+		{
+			name: "Bad request body",
+			data: "INVALID REQUEST\r\n\r\n",
+			want: "HTTP/1.1 400 Bad Request\r\nContent-Length: 12\r\nContent-Type: text/plain\r\n\r\nBad Request\n",
+		},
+		{
+			name: "Invalid path",
+			data: "GET /unknown HTTP/1.1\r\n\r\n",
+			want: "HTTP/1.1 404 Not Found\r\nContent-Length: 10\r\nContent-Type: text/plain\r\n\r\nNot Found\n",
+		},
+		{
+			name: "Registered path",
+			data: "GET /echo HTTP/1.1\r\n\r\n",
+			want: "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nContent-Type: text/plain\r\n\r\nHello\n",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := sendRequest(tt.data)
 			if tt.want != got {
-				t.Errorf("Expected response %s, but got %s", tt.want, got)
+				t.Errorf("Expected response %q, but got %q", tt.want, got)
 			}
 		})
 	}

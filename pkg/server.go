@@ -61,30 +61,21 @@ func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	req, err := ParseRequest(conn)
+	rw := NewResponseWriter(conn)
 	if err != nil {
 		log.Printf("Failed to parse request from %s: %v", conn.RemoteAddr(), err)
-		response := HTTPResponse{
-			StatusCode: 400,
-			Body:       []byte(StatusDescription(400) + "\n"),
-		}
-		response.Write(conn)
+		rw.WriteHeader(400)
+		rw.Write([]byte(StatusDescription(400) + "\n"))
 		return
 	}
 
 	handler, params := s.router.GetHandler(req)
 
-	var response HTTPResponse
 	if handler == nil {
 		log.Printf("No handler found for path: %s", req.URL)
-		response = HTTPResponse{
-			StatusCode: 404,
-			Body:       []byte(StatusDescription(404) + "\n"),
-		}
+		rw.WriteHeader(404)
+		rw.Write([]byte(StatusDescription(404) + "\n"))
 	} else {
-		response = handler(req, params)
-	}
-
-	if err := response.Write(conn); err != nil {
-		log.Printf("Error writing response to %s: %v", conn.RemoteAddr(), err)
+		handler(req, rw, params)
 	}
 }

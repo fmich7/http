@@ -9,16 +9,9 @@ func TestNewHTTPRouter(t *testing.T) {
 	}
 }
 
-// Dummy handler for testing
-func dummyHandler(req HTTPRequest, params map[string]string) HTTPResponse {
-	return HTTPResponse{
-		StatusCode: 200,
-		Body:       []byte("OK"),
-	}
-}
-
 func TestHTTPRouter(t *testing.T) {
 	router := NewHTTPRouter()
+	dummyHandler := func(HTTPRequest, ResponseWriter, map[string]string) {}
 
 	// Register routes
 	router.HandlerFunc("GET", "/hello", dummyHandler)

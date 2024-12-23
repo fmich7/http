@@ -3,7 +3,7 @@ package http
 import "strings"
 
 // request, params -> response
-type HTTPHandler func(HTTPRequest, map[string]string) HTTPResponse
+type HTTPHandler func(HTTPRequest, ResponseWriter, map[string]string)
 
 type Route struct {
 	method     string
