@@ -3,7 +3,11 @@ package http
 import (
 	"net"
 	"testing"
+	"time"
 )
+
+// Example readTimeout used in reading requests
+const readTimeout = 5 * time.Second
 
 // mockConn sets server and client for testing
 func mockConn(input string) (net.Conn, net.Conn) {
@@ -21,7 +25,7 @@ func TestReadRequest(t *testing.T) {
 		server, _ := mockConn(input)
 		defer server.Close()
 
-		data, err := ReadRequest(server)
+		data, err := ReadRequest(server, readTimeout)
 		if err != nil {
 			t.Fatal("Expected no error")
 		}
@@ -41,7 +45,7 @@ func TestReadRequest(t *testing.T) {
 			client.Close()
 		}()
 
-		_, err := ReadRequest(server)
+		_, err := ReadRequest(server, readTimeout)
 		if err != nil {
 			t.Fatalf("Expected EOF error or nil, got: %v", err)
 		}
@@ -52,7 +56,7 @@ func TestReadRequest(t *testing.T) {
 		defer client.Close()
 		defer server.Close()
 
-		_, err := ReadRequest(server)
+		_, err := ReadRequest(server, readTimeout)
 		if err != nil {
 			t.Fatalf("Expected EOF error or nil, got: %v", err)
 		}
@@ -65,7 +69,7 @@ func TestParseRequest(t *testing.T) {
 		server, _ := mockConn(input)
 		defer server.Close()
 
-		_, err := ParseRequest(server)
+		_, err := ParseRequest(server, readTimeout)
 		if err == nil {
 			t.Fatal("Expected an error, got nil")
 		}
@@ -76,7 +80,7 @@ func TestParseRequest(t *testing.T) {
 		server, _ := mockConn(input)
 		defer server.Close()
 
-		got, err := ParseRequest(server)
+		got, err := ParseRequest(server, readTimeout)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -99,7 +103,7 @@ func TestParseRequest(t *testing.T) {
 		server, _ := mockConn(input)
 		defer server.Close()
 
-		got, err := ParseRequest(server)
+		got, err := ParseRequest(server, readTimeout)
 		if err != nil {
 			t.Fatal(err)
 		}

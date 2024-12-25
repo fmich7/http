@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 )
 
 type HTTPRequest struct {
@@ -19,32 +20,40 @@ type HTTPRequest struct {
 const CRLF = "\r\n"
 
 // ReadRequest reads request data bytes to buffer
-func ReadRequest(conn net.Conn) ([]byte, error) {
+func ReadRequest(conn net.Conn, readTimeout time.Duration) ([]byte, error) {
+	// Set the read deadline
+	conn.SetReadDeadline(time.Now().Add(readTimeout))
+	defer conn.SetReadDeadline(time.Time{})
+
+	// Read request
 	var buf bytes.Buffer
 	tmp := make([]byte, 1024)
-
 	for {
 		n, err := conn.Read(tmp)
-
 		if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				return nil, fmt.Errorf("read timeout occurred: %w", err)
+			}
+
 			if err == io.EOF {
 				break
 			}
 			return nil, fmt.Errorf("read error: %w", err)
 		}
-
 		buf.Write(tmp[:n])
+		// TODO: Improve this part
 		if bytes.Contains(buf.Bytes(), []byte("\r\n\r\n")) {
 			break
 		}
 	}
+
 	return buf.Bytes(), nil
 }
 
 // ParseRequest gets infromations from incoming request
-func ParseRequest(conn net.Conn) (HTTPRequest, error) {
+func ParseRequest(conn net.Conn, readTimeout time.Duration) (HTTPRequest, error) {
 	// Read data from connection
-	reqData, err := ReadRequest(conn)
+	reqData, err := ReadRequest(conn, readTimeout)
 	if err != nil {
 		return HTTPRequest{}, err
 	}
@@ -93,20 +102,20 @@ func ParseRequest(conn net.Conn) (HTTPRequest, error) {
 	}, nil
 }
 
-func (r HTTPRequest) String() string {
-	headers := ""
-	for k, v := range r.Headers {
-		headers += fmt.Sprintf("%s: %s\n", k, v)
-	}
+// func (r HTTPRequest) String() string {
+// 	headers := ""
+// 	for k, v := range r.Headers {
+// 		headers += fmt.Sprintf("%s: %s\n", k, v)
+// 	}
 
-	req := fmt.Sprintf("%s %s %s\n%s", r.Method, r.URL, r.ProtocolVersion, headers)
+// 	req := fmt.Sprintf("%s %s %s\n%s", r.Method, r.URL, r.ProtocolVersion, headers)
 
-	if len(r.Body) > 0 {
-		req += fmt.Sprintf("\n\n%s", r.Body)
-	}
+// 	if len(r.Body) > 0 {
+// 		req += fmt.Sprintf("\n\n%s", r.Body)
+// 	}
 
-	return req
-}
+// 	return req
+// }
 
 func isEqualHTTPRequest(a, b HTTPRequest) bool {
 	if a.Method != b.Method ||

@@ -4,22 +4,28 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
+	"time"
 )
 
 // TCP Server
 type Server struct {
-	listenAddr string
-	listener   net.Listener
-	quitch     chan struct{}
-	router     *HTTPRouter
+	listenAddr   string
+	listener     net.Listener
+	quitch       chan struct{}
+	router       *HTTPRouter
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
 }
 
 // NewServer returns a new server object
 func NewServer(listenAddr string, router *HTTPRouter) *Server {
 	return &Server{
-		listenAddr: listenAddr,
-		quitch:     make(chan struct{}),
-		router:     router,
+		listenAddr:   listenAddr,
+		quitch:       make(chan struct{}),
+		router:       router,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
 }
 
@@ -51,7 +57,7 @@ func (s *Server) acceptLoop() {
 			log.Println("Error accepting connection:", err)
 			continue
 		}
-		fmt.Println("New request from:", conn.RemoteAddr())
+		log.Println("New request from:", conn.RemoteAddr())
 		go s.handleConnection(conn)
 	}
 }
@@ -60,11 +66,17 @@ func (s *Server) acceptLoop() {
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	req, err := ParseRequest(conn)
-	rw := NewResponseWriter(conn)
+	req, err := ParseRequest(conn, s.ReadTimeout)
+	rw := NewResponseWriter(conn, s.WriteTimeout)
 	if err != nil {
+		// Send 408 if read took too long
+		if strings.Contains(err.Error(), "read timeout") {
+			log.Printf("Read timeout %s: %v", conn.RemoteAddr(), err)
+			rw.SetStatus(408)
+			rw.Write([]byte(StatusDescription(408) + "\n"))
+		}
 		log.Printf("Failed to parse request from %s: %v", conn.RemoteAddr(), err)
-		rw.WriteHeader(400)
+		rw.SetStatus(400)
 		rw.Write([]byte(StatusDescription(400) + "\n"))
 		return
 	}
@@ -73,7 +85,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 	if handler == nil {
 		log.Printf("No handler found for path: %s", req.URL)
-		rw.WriteHeader(404)
+		rw.SetStatus(404)
 		rw.Write([]byte(StatusDescription(404) + "\n"))
 	} else {
 		handler(req, rw, params)

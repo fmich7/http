@@ -5,7 +5,10 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 )
+
+const writeTimeout = 5 * time.Second
 
 func TestStatusDescription(t *testing.T) {
 	tests := []struct {
@@ -32,7 +35,7 @@ func TestResponseWriter_Write(t *testing.T) {
 
 	go func() {
 		defer serverConn.Close()
-		rw := NewResponseWriter(serverConn)
+		rw := NewResponseWriter(serverConn, writeTimeout)
 		if _, err := rw.Write([]byte("Hello, world!")); err != nil {
 			t.Errorf("Write error: %s", err)
 		}

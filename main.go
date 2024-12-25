@@ -20,7 +20,7 @@ func main() {
 		file, err := os.ReadFile("static/" + m["file"])
 		fmt.Println(m["file"])
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.SetStatus(http.StatusNotFound)
 			w.Write([]byte(http.StatusDescription(http.StatusNotFound)))
 			return
 		}
@@ -35,14 +35,14 @@ func main() {
 		file, err := os.Create("upload/" + filename)
 		defer file.Close()
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
+			w.SetStatus(http.StatusNotFound)
 			w.Write([]byte(http.StatusDescription(http.StatusNotFound)))
 			return
 		}
 
 		n, err := file.Write(r.Body)
 		if err != nil || n < len(r.Body) {
-			w.WriteHeader(http.StatusServerError)
+			w.SetStatus(http.StatusServerError)
 			w.Write([]byte(http.StatusDescription(http.StatusServerError)))
 			return
 		}
