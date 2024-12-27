@@ -11,14 +11,14 @@ func main() {
 	router := http.NewHTTPRouter()
 	s := http.NewServer(":3000", router)
 
-	router.HandlerFunc("GET", "/echo/{asd}", func(h http.HTTPRequest, w http.ResponseWriter, m map[string]string) {
-		w.Write([]byte(m["asd"]))
+	router.HandlerFunc("GET", "/echo/{asd}", func(r *http.HTTPRequest, w http.ResponseWriter) {
+		w.Write([]byte(r.Params["asd"]))
 	})
 
 	// Download a file
-	router.HandlerFunc("GET", "/static/{file}", func(r http.HTTPRequest, w http.ResponseWriter, m map[string]string) {
-		file, err := os.ReadFile("static/" + m["file"])
-		fmt.Println(m["file"])
+	router.HandlerFunc("GET", "/static/{file}", func(r *http.HTTPRequest, w http.ResponseWriter) {
+		file, err := os.ReadFile("static/" + r.Params["file"])
+		fmt.Println(r.Params["file"])
 		if err != nil {
 			w.SetStatus(http.StatusNotFound)
 			w.Write([]byte(http.StatusDescription(http.StatusNotFound)))
@@ -30,8 +30,8 @@ func main() {
 	})
 
 	// Post file
-	router.HandlerFunc("POST", "/files/{file}", func(r http.HTTPRequest, w http.ResponseWriter, m map[string]string) {
-		filename := m["file"]
+	router.HandlerFunc("POST", "/files/{file}", func(r *http.HTTPRequest, w http.ResponseWriter) {
+		filename := r.Params["file"]
 		file, err := os.Create("upload/" + filename)
 		defer file.Close()
 		if err != nil {

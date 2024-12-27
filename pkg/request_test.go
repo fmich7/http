@@ -93,7 +93,7 @@ func TestParseRequest(t *testing.T) {
 			Body:            []byte{},
 		}
 
-		if !isEqualHTTPRequest(want, got) {
+		if !isEqualHTTPRequest(want, *got) {
 			t.Fatalf("Want %v, got %v", want, got)
 		}
 	})
@@ -120,7 +120,7 @@ func TestParseRequest(t *testing.T) {
 			Body: []byte("{\"key\":\"value\"}"),
 		}
 
-		if !isEqualHTTPRequest(want, got) {
+		if !isEqualHTTPRequest(want, *got) {
 			t.Fatalf("Want %v, got %v", want, got)
 		}
 	})

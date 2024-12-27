@@ -11,7 +11,7 @@ func TestNewHTTPRouter(t *testing.T) {
 
 func TestHTTPRouter(t *testing.T) {
 	router := NewHTTPRouter()
-	dummyHandler := func(HTTPRequest, ResponseWriter, map[string]string) {}
+	dummyHandler := func(*HTTPRequest, ResponseWriter) {}
 
 	// Register routes
 	router.HandlerFunc("GET", "/hello", dummyHandler)
@@ -83,7 +83,7 @@ func TestHTTPRouter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler, params := router.GetHandler(tt.req)
+			handler := router.GetHandler(&tt.req)
 
 			if tt.expectHandler && handler == nil {
 				t.Errorf("Expected handler, but got nil")
@@ -95,8 +95,8 @@ func TestHTTPRouter(t *testing.T) {
 
 			if tt.expectHandler {
 				for key, val := range tt.expectedParams {
-					if params[key] != val {
-						t.Errorf("Expected param %s to be %s, but got %s", key, val, params[key])
+					if tt.req.Params[key] != val {
+						t.Errorf("Expected param %s to be %s, but got %s", key, val, tt.req.Params[key])
 					}
 				}
 			}

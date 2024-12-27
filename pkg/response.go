@@ -14,6 +14,7 @@ const (
 	StatusNotFound       = 404
 	StatusRequestTimeout = 408
 	StatusServerError    = 500
+	StatusGatewayTimeout = 504
 )
 
 // StatusDescription returns a status description for the given status code
@@ -29,6 +30,8 @@ func StatusDescription(code int) string {
 		return "Request Timeout"
 	case 500:
 		return "Internal Server Error"
+	case 504:
+		return "Gateway Timeout"
 	default:
 		return ""
 	}

@@ -53,7 +53,7 @@ func TestHandleConnection(t *testing.T) {
 	s := NewServer(":0", NewHTTPRouter())
 
 	// Register the handler before sending any requests
-	s.router.HandlerFunc("GET", "/echo", func(r HTTPRequest, w ResponseWriter, m map[string]string) {
+	s.router.HandlerFunc("GET", "/echo", func(r *HTTPRequest, w ResponseWriter) {
 		w.Write([]byte("Hello\n"))
 	})
 

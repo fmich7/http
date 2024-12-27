@@ -3,7 +3,7 @@ package http
 import "strings"
 
 // request, params -> response
-type HTTPHandler func(HTTPRequest, ResponseWriter, map[string]string)
+type HTTPHandler func(*HTTPRequest, ResponseWriter)
 
 type Route struct {
 	method     string
@@ -46,7 +46,7 @@ func (s *HTTPRouter) HandlerFunc(method string, path string, handler HTTPHandler
 }
 
 // GetHandler returns the handler that matches url and extracted variables
-func (s *HTTPRouter) GetHandler(req HTTPRequest) (HTTPHandler, map[string]string) {
+func (s *HTTPRouter) GetHandler(req *HTTPRequest) HTTPHandler {
 	reqParts := strings.Split(strings.Trim(req.URL, "/"), "/")
 
 	for _, route := range s.routes {
@@ -71,9 +71,10 @@ func (s *HTTPRouter) GetHandler(req HTTPRequest) (HTTPHandler, map[string]string
 		}
 
 		if matches {
-			return route.handler, params
+			req.Params = params
+			return route.handler
 		}
 	}
 
-	return nil, nil
+	return nil
 }

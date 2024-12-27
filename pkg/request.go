@@ -15,6 +15,7 @@ type HTTPRequest struct {
 	ProtocolVersion string
 	Headers         map[string]string
 	Body            []byte
+	Params          map[string]string
 }
 
 const CRLF = "\r\n"
@@ -51,18 +52,18 @@ func ReadRequest(conn net.Conn, readTimeout time.Duration) ([]byte, error) {
 }
 
 // ParseRequest gets infromations from incoming request
-func ParseRequest(conn net.Conn, readTimeout time.Duration) (HTTPRequest, error) {
+func ParseRequest(conn net.Conn, readTimeout time.Duration) (*HTTPRequest, error) {
 	// Read data from connection
 	reqData, err := ReadRequest(conn, readTimeout)
 	if err != nil {
-		return HTTPRequest{}, err
+		return nil, err
 	}
 
 	// Split data and read method url protocol
 	splitData := bytes.Split(reqData, []byte("\r\n"))
 	reqLineVals := bytes.Split(splitData[0], []byte(" "))
 	if len(reqLineVals) != 3 {
-		return HTTPRequest{}, errors.New("Invalid request line")
+		return nil, errors.New("Invalid request line")
 	}
 
 	// Request attributes
@@ -81,7 +82,7 @@ func ParseRequest(conn net.Conn, readTimeout time.Duration) (HTTPRequest, error)
 
 		headerLineValues := bytes.Split(splitData[i], []byte(": "))
 		if len(headerLineValues) != 2 {
-			return HTTPRequest{}, errors.New("Invalid header entry")
+			return nil, errors.New("Invalid header entry")
 		}
 
 		headers[string(headerLineValues[0])] = string(headerLineValues[1])
@@ -93,7 +94,7 @@ func ParseRequest(conn net.Conn, readTimeout time.Duration) (HTTPRequest, error)
 		body = splitData[i]
 	}
 
-	return HTTPRequest{
+	return &HTTPRequest{
 		Method:          string(method),
 		URL:             string(url),
 		ProtocolVersion: string(protocol),
