@@ -10,6 +10,7 @@ func TestNewHTTPRouter(t *testing.T) {
 }
 
 func TestHTTPRouter(t *testing.T) {
+	// Initial setup
 	router := NewHTTPRouter()
 	dummyHandler := func(*HTTPRequest, ResponseWriter) {}
 

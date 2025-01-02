@@ -63,7 +63,6 @@ func TestHandleConnection(t *testing.T) {
 		defer client.Close()
 		defer server.Close()
 
-		// Run handleConnection in a goroutine
 		go func() {
 			s.handleConnection(server)
 		}()

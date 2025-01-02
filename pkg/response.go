@@ -130,7 +130,6 @@ func (rw *DefaultResponseWriter) Write(body []byte) (int, error) {
 	if err != nil {
 		return n, fmt.Errorf("failed to write body: %w", err)
 	}
-	rw.conn.SetWriteDeadline(time.Time{})
 
 	return n, nil
 }

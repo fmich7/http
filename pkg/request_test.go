@@ -9,8 +9,8 @@ import (
 // Example readTimeout used in reading requests
 const readTimeout = 5 * time.Second
 
-// mockConn sets server and client for testing
-func mockConn(input string) (net.Conn, net.Conn) {
+// MockConn sets server and client for testing
+func MockConn(input string) (net.Conn, net.Conn) {
 	server, client := net.Pipe()
 	go func() {
 		defer client.Close()
@@ -22,7 +22,7 @@ func mockConn(input string) (net.Conn, net.Conn) {
 func TestReadRequest(t *testing.T) {
 	t.Run("normal data", func(t *testing.T) {
 		input := "ale lekki test!"
-		server, _ := mockConn(input)
+		server, _ := MockConn(input)
 		defer server.Close()
 
 		data, err := ReadRequest(server, readTimeout)
@@ -37,7 +37,7 @@ func TestReadRequest(t *testing.T) {
 
 	t.Run("random", func(t *testing.T) {
 		input := "t\r\n\r\na"
-		server, client := mockConn(input)
+		server, client := MockConn(input)
 		defer client.Close()
 		defer server.Close()
 
@@ -52,7 +52,7 @@ func TestReadRequest(t *testing.T) {
 	})
 	t.Run("empty", func(t *testing.T) {
 		input := ""
-		server, client := mockConn(input)
+		server, client := MockConn(input)
 		defer client.Close()
 		defer server.Close()
 
@@ -66,7 +66,7 @@ func TestReadRequest(t *testing.T) {
 func TestParseRequest(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		input := ""
-		server, _ := mockConn(input)
+		server, _ := MockConn(input)
 		defer server.Close()
 
 		_, err := ParseRequest(server, readTimeout)
@@ -77,7 +77,7 @@ func TestParseRequest(t *testing.T) {
 
 	t.Run("normal GET request", func(t *testing.T) {
 		input := "GET /index.html HTTP/1.1\r\nHost: example.com\r\n\r\n"
-		server, _ := mockConn(input)
+		server, _ := MockConn(input)
 		defer server.Close()
 
 		got, err := ParseRequest(server, readTimeout)
@@ -100,7 +100,7 @@ func TestParseRequest(t *testing.T) {
 
 	t.Run("normal POST request with body", func(t *testing.T) {
 		input := "POST /submit HTTP/1.1\r\nHost: example.com\r\nContent-Type: application/json\r\nContent-Length: 18\r\n\r\n{\"key\":\"value\"}"
-		server, _ := mockConn(input)
+		server, _ := MockConn(input)
 		defer server.Close()
 
 		got, err := ParseRequest(server, readTimeout)

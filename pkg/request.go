@@ -2,12 +2,15 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"time"
 )
+
+const CRLF = "\r\n"
 
 type HTTPRequest struct {
 	Method          string
@@ -16,9 +19,27 @@ type HTTPRequest struct {
 	Headers         map[string]string
 	Body            []byte
 	Params          map[string]string
+	ctx             context.Context
 }
 
-const CRLF = "\r\n"
+// Context return's the request context
+func (r *HTTPRequest) Context() context.Context {
+	if r.ctx != nil {
+		return r.ctx
+	}
+	return context.Background()
+}
+
+// WithContext returns copy of request with set ctx
+func (r *HTTPRequest) WithContext(ctx context.Context) *HTTPRequest {
+	if ctx == nil {
+		panic("nil request's context")
+	}
+	n := new(HTTPRequest)
+	*n = *r
+	n.ctx = ctx
+	return n
+}
 
 // ReadRequest reads request data bytes to buffer
 func ReadRequest(conn net.Conn, readTimeout time.Duration) ([]byte, error) {

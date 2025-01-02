@@ -16,7 +16,6 @@ type Server struct {
 	router       *HTTPRouter
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
 }
 
 // NewServer returns a new server object
@@ -27,7 +26,6 @@ func NewServer(listenAddr string, router *HTTPRouter) *Server {
 		router:       router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  20 * time.Second,
 	}
 }
 
@@ -76,6 +74,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			log.Printf("Read timeout %s: %v", conn.RemoteAddr(), err)
 			rw.SetStatus(408)
 			rw.Write([]byte(StatusDescription(408) + "\n"))
+			return
 		}
 		log.Printf("Failed to parse request from %s: %v", conn.RemoteAddr(), err)
 		rw.SetStatus(400)
@@ -90,21 +89,6 @@ func (s *Server) handleConnection(conn net.Conn) {
 		rw.SetStatus(404)
 		rw.Write([]byte(StatusDescription(404) + "\n"))
 	} else {
-		finished := make(chan bool, 1)
-
-		go func() {
-			handler(req, rw)
-			finished <- true
-		}()
-
-		select {
-		case <-finished:
-			return
-		case <-time.After(s.IdleTimeout):
-			// Timeout occurred
-			log.Printf("Request timed out from %s", conn.RemoteAddr())
-			rw.SetStatus(504)
-			rw.Write([]byte(StatusDescription(504) + "\n"))
-		}
+		handler(req, rw)
 	}
 }
