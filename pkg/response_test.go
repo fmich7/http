@@ -16,6 +16,7 @@ func TestStatusDescription(t *testing.T) {
 		expected string
 	}{
 		{200, "OK"},
+		{201, "Created"},
 		{400, "Bad Request"},
 		{404, "Not Found"},
 		{408, "Request Timeout"},

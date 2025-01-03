@@ -2,7 +2,7 @@ package http
 
 import "strings"
 
-// request, params -> response
+// HTTPHandler defines signature of func that handles requests
 type HTTPHandler func(*HTTPRequest, ResponseWriter)
 
 type Route struct {

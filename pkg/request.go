@@ -12,14 +12,28 @@ import (
 
 const CRLF = "\r\n"
 
+// Represents the incoming HTTP request
 type HTTPRequest struct {
-	Method          string
-	URL             string
+	// Method of the request
+	Method string
+
+	// Target path of the request (e.g. "/api/something")
+	URL string
+
+	// HTTP version of the request
 	ProtocolVersion string
-	Headers         map[string]string
-	Body            []byte
-	Params          map[string]string
-	ctx             context.Context
+
+	// Key-value pairs of HTTP headers included in the request
+	Headers map[string]string
+
+	// Body holds the raw content of the request body.
+	Body []byte
+
+	// Params stores any route parameters extracted from the URL (e.g. "/users/{id}", gives {"id": "123"})
+	Params map[string]string
+
+	// Context for the request, which can carry deadlines
+	ctx context.Context
 }
 
 // Context return's the request context

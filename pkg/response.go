@@ -10,6 +10,7 @@ import (
 // Status codes
 const (
 	StatusOK             = 200
+	StatusCreated        = 201
 	StatusBadRequest     = 400
 	StatusNotFound       = 404
 	StatusRequestTimeout = 408
@@ -22,6 +23,8 @@ func StatusDescription(code int) string {
 	switch code {
 	case 200:
 		return "OK"
+	case 201:
+		return "Created"
 	case 400:
 		return "Bad Request"
 	case 404:
@@ -37,10 +40,16 @@ func StatusDescription(code int) string {
 	}
 }
 
+// Provides methods to construct and send the HTTP response.
 type ResponseWriter interface {
-	Write([]byte) (int, error)   // Write sends response to conn
-	SetStatus(statusCode int)    // Sets status code of response
-	SetHeader(key, value string) // Sets headers of repsonse
+	// Write writes the byte slice to the response body.
+	Write([]byte) (int, error)
+
+	// SetStatus sets the HTTP status code for the response.
+	SetStatus(statusCode int)
+
+	// SetHeader sets a key-value pair in the HTTP response headers.
+	SetHeader(key, value string)
 }
 
 // DefaultResponseWriter implements ResponseWriter interface

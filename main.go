@@ -17,6 +17,13 @@ func main() {
 	router := http.NewHTTPRouter()
 	s := http.NewServer(":3000", router)
 
+	// Register a handler
+	router.HandlerFunc("GET", "/hello/{who}", func(r *http.HTTPRequest, w http.ResponseWriter) {
+		w.SetStatus(200)
+		w.SetHeader("Content-Type", "text/html")
+		w.Write([]byte(fmt.Sprintf("<h1>Hello, %s!</h1>", r.Params["who"])))
+	})
+
 	// Params with timeout
 	router.HandlerFunc("GET", "/echo/{asd}", http.TimeoutHandler(AsdHandler, 5*time.Second))
 
@@ -51,6 +58,7 @@ func main() {
 			w.Write([]byte(http.StatusDescription(http.StatusServerError)))
 			return
 		}
+		w.SetStatus(201)
 		w.Write([]byte("Successfully uploaded file"))
 	})
 
