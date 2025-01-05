@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// TCP Server
+// Server represents an HTTP server that listens and handles requests
 type Server struct {
 	listenAddr   string
 	listener     net.Listener
@@ -49,7 +49,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// acceptLoop method handles incoming connections
+// acceptLoop method accepts incoming requests
 func (s *Server) acceptLoop() {
 	for {
 		conn, err := s.listener.Accept()
@@ -62,7 +62,7 @@ func (s *Server) acceptLoop() {
 	}
 }
 
-// handleConnections handles incoming connections (requests)
+// handleConnections handles requests
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 

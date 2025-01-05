@@ -40,15 +40,15 @@ func StatusDescription(code int) string {
 	}
 }
 
-// Provides methods to construct and send the HTTP response.
+// ResponseWriter provides methods to construct and send the HTTP response
 type ResponseWriter interface {
-	// Write writes the byte slice to the response body.
+	// Write writes the byte slice to the response body
 	Write([]byte) (int, error)
 
-	// SetStatus sets the HTTP status code for the response.
+	// SetStatus sets the HTTP status code for the response
 	SetStatus(statusCode int)
 
-	// SetHeader sets a key-value pair in the HTTP response headers.
+	// SetHeader sets a key-value pair in the HTTP response headers
 	SetHeader(key, value string)
 }
 
@@ -61,7 +61,7 @@ type DefaultResponseWriter struct {
 	writeTimeout time.Duration
 }
 
-// Returns new response writer
+// NewResponseWriter returns new response writer
 func NewResponseWriter(conn net.Conn, writeTimeout time.Duration) *DefaultResponseWriter {
 	return &DefaultResponseWriter{
 		conn:         conn,

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Example readTimeout used in reading requests
+// readTimeout used in reading requests
 const readTimeout = 5 * time.Second
 
 // MockConn sets server and client for testing

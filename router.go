@@ -5,6 +5,7 @@ import "strings"
 // HTTPHandler defines signature of func that handles requests
 type HTTPHandler func(*HTTPRequest, ResponseWriter)
 
+// Route represents a single HTTP route in the router
 type Route struct {
 	method     string
 	pathParts  []string
@@ -12,6 +13,7 @@ type Route struct {
 	paramNames []string
 }
 
+// HTTPRouter is a router for managing routes and their handlers
 type HTTPRouter struct {
 	routes []Route
 }
@@ -23,8 +25,10 @@ func NewHTTPRouter() *HTTPRouter {
 	}
 }
 
-// HandlerFunc binds handler to route
-// Use placeholders such as {variable}
+// HandlerFunc adds a new route to the HTTPRouter
+// - method: HTTP method for the route "GET", "POST", etc.
+// - path: URL path for the route (dynamic parameters "/users/{id}")
+// - handler: Function to handle requests
 func (s *HTTPRouter) HandlerFunc(method string, path string, handler HTTPHandler) {
 	pathParts := strings.Split(strings.Trim(path, "/"), "/")
 	paramNames := []string{}
@@ -45,7 +49,7 @@ func (s *HTTPRouter) HandlerFunc(method string, path string, handler HTTPHandler
 	})
 }
 
-// GetHandler returns the handler that matches url and extracted variables
+// GetHandler returns the HTTP handler that is appropiate for given request
 func (s *HTTPRouter) GetHandler(req *HTTPRequest) HTTPHandler {
 	reqParts := strings.Split(strings.Trim(req.URL, "/"), "/")
 

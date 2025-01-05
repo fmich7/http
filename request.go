@@ -10,9 +10,10 @@ import (
 	"time"
 )
 
+// CRLF const
 const CRLF = "\r\n"
 
-// Represents the incoming HTTP request
+// HTTPRequest represents the incoming HTTP request
 type HTTPRequest struct {
 	// Method of the request
 	Method string
@@ -26,7 +27,7 @@ type HTTPRequest struct {
 	// Key-value pairs of HTTP headers included in the request
 	Headers map[string]string
 
-	// Body holds the raw content of the request body.
+	// Body holds the raw content of the request body
 	Body []byte
 
 	// Params stores any route parameters extracted from the URL (e.g. "/users/{id}", gives {"id": "123"})
@@ -153,6 +154,7 @@ func ParseRequest(conn net.Conn, readTimeout time.Duration) (*HTTPRequest, error
 // 	return req
 // }
 
+// isEqualHTTPRequest compares that 2 requests are similar (used for testing)
 func isEqualHTTPRequest(a, b HTTPRequest) bool {
 	if a.Method != b.Method ||
 		a.URL != b.URL ||

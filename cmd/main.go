@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
-	http "github.com/fmich7/http/pkg"
+	"github.com/fmich7/http"
 )
 
-func AsdHandler(r *http.HTTPRequest, w http.ResponseWriter) {
+func SomeHandler(r *http.HTTPRequest, w http.ResponseWriter) {
 	time.Sleep(1 * time.Second)
 	w.Write([]byte(r.Params["asd"]))
 }
@@ -25,7 +25,7 @@ func main() {
 	})
 
 	// Params with timeout
-	router.HandlerFunc("GET", "/echo/{asd}", http.TimeoutHandler(AsdHandler, 5*time.Second))
+	router.HandlerFunc("GET", "/echo/{asd}", http.TimeoutHandler(SomeHandler, 5*time.Second))
 
 	// Download a file
 	router.HandlerFunc("GET", "/static/{file}", func(r *http.HTTPRequest, w http.ResponseWriter) {

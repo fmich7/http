@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-// TimeoutHandler timeouts request that take too long to finish
+// TimeoutHandler wraps a HTTPHandler with a timeout
+// If the handler takes longer than time.Duration
+// It will respond with a 504 Gateway Timeout status
 func TimeoutHandler(org HTTPHandler, dt time.Duration) HTTPHandler {
 	return func(r *HTTPRequest, w ResponseWriter) {
 		ctx, cancel := context.WithTimeout(r.Context(), dt)
