@@ -226,11 +226,9 @@ func TestHTTPRequestComparison(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotErr := isEqualHTTPRequest(tt.want, tt.got)
-			if gotErr != tt.equal {
-				t.Errorf("isEqualHTTPRequest() = %v, wantErr %v", gotErr, tt.equal)
-			}
-		})
+		gotErr := isEqualHTTPRequest(tt.want, tt.got)
+		if gotErr != tt.equal {
+			t.Errorf("isEqualHTTPRequest() = %v, wantErr %v", gotErr, tt.equal)
+		}
 	}
 }

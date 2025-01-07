@@ -83,24 +83,22 @@ func TestHTTPRouter(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			handler := router.GetHandler(&tt.req)
+		handler := router.GetHandler(&tt.req)
 
-			if tt.expectHandler && handler == nil {
-				t.Errorf("Expected handler, but got nil")
-			}
+		if tt.expectHandler && handler == nil {
+			t.Errorf("Expected handler, but got nil")
+		}
 
-			if !tt.expectHandler && handler != nil {
-				t.Errorf("Expected no handler, but got one")
-			}
+		if !tt.expectHandler && handler != nil {
+			t.Errorf("Expected no handler, but got one")
+		}
 
-			if tt.expectHandler {
-				for key, val := range tt.expectedParams {
-					if tt.req.Params[key] != val {
-						t.Errorf("Expected param %s to be %s, but got %s", key, val, tt.req.Params[key])
-					}
+		if tt.expectHandler {
+			for key, val := range tt.expectedParams {
+				if tt.req.Params[key] != val {
+					t.Errorf("Expected param %s to be %s, but got %s", key, val, tt.req.Params[key])
 				}
 			}
-		})
+		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,7 @@ type Server struct {
 	listenAddr   string
 	listener     net.Listener
 	quitch       chan struct{}
+	wg           sync.WaitGroup
 	router       *HTTPRouter
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
@@ -31,33 +33,62 @@ func NewServer(listenAddr string, router *HTTPRouter) *Server {
 
 // Start method starts the server
 func (s *Server) Start() error {
-	defer close(s.quitch)
-
 	listener, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
 		return fmt.Errorf("error starting tcp server: %s", err)
 	}
-	defer listener.Close()
 
 	fmt.Println("Running tcp server on address:", s.listenAddr)
 	s.listener = listener
 
+	s.wg.Add(1)
 	go s.acceptLoop()
 
 	return nil
 }
 
+// Stop method stops the server
+func (s *Server) Stop() {
+	close(s.quitch)
+	s.listener.Close()
+
+	done := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return
+	case <-time.After(time.Second):
+		log.Println("Timed out waiting for connections to finish.")
+		return
+	}
+}
+
 // acceptLoop method accepts incoming requests
 func (s *Server) acceptLoop() {
+	defer s.wg.Done()
+
 	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			log.Println("Error accepting connection:", err)
-			continue
+		select {
+		case <-s.quitch:
+			return
+		default:
+			conn, err := s.listener.Accept()
+			if err != nil {
+				continue
+			}
+			log.Println("New request from:", conn.RemoteAddr())
+			go s.handleConnection(conn)
 		}
-		log.Println("New request from:", conn.RemoteAddr())
-		go s.handleConnection(conn)
 	}
+}
+
+// GetPort method return a port of running server
+func (s *Server) GetPort() int {
+	return s.listener.Addr().(*net.TCPAddr).Port
 }
 
 // handleConnections handles requests

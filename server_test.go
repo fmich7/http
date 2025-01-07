@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"testing"
-	"time"
 )
 
 func TestNewServer(t *testing.T) {
@@ -32,40 +31,50 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	s := NewServer(":0", nil)
+	// Start the server
+	s := NewServer(":0", NewHTTPRouter())
+	if err := s.Start(); err != nil {
+		t.Fatal(err)
+	}
+	PORT := s.GetPort()
 
-	started := make(chan struct{}, 1)
-	go func() {
-		defer close(started)
-		err := s.Start()
-		if err != nil {
-			t.Errorf("Server failed to start: %s", err)
-		}
-	}()
+	// Connect to the server and send a message
+	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
 
-	select {
-	case <-started:
-		if s.listener == nil {
-			t.Error("Expected server listener to be initialized, but got nil")
-		}
-	case <-time.After(500 * time.Millisecond):
-		t.Error("Server did not start within the expected time")
+	expected := "HTTP/1.1 404 Not Found\r\nContent-Length: 10\r\nContent-Type: text/plain\r\n\r\nNot Found\n"
+	request := "GET /unknown HTTP/1.1\r\n\r\n"
+	// Write the request to the client side
+	_, err = conn.Write([]byte(request))
+	if err != nil {
+		t.Fatalf("Failed to write to client connection: %s", err)
 	}
 
+	response, err := io.ReadAll(conn)
+	if err != nil {
+		t.Fatalf("failed to read: %s", err)
+	}
+
+	if string(response) != expected {
+		t.Errorf("expected %q, but got %q", expected, response)
+	}
+
+	// Stop the server
+	s.Stop()
 }
 
 func TestHandleConnection(t *testing.T) {
 	s := NewServer(":0", NewHTTPRouter())
 
-	started := make(chan struct{}, 1)
-	go func() {
-		defer close(started)
-		err := s.Start()
-		if err != nil {
-			t.Errorf("Server failed to start: %s", err)
-		}
-	}()
+	// Start server
+	if err := s.Start(); err != nil {
+		t.Errorf("Server failed to start: %s", err)
+	}
 
+	PORT := s.GetPort()
 	// Register the handler before sending any requests
 	s.router.HandlerFunc("GET", "/echo", func(r *HTTPRequest, w ResponseWriter) {
 		w.Write([]byte("Hello\n"))
@@ -73,26 +82,24 @@ func TestHandleConnection(t *testing.T) {
 
 	// Function to handle a connection and return the response
 	sendRequest := func(request string) string {
-		client, server := net.Pipe()
-		defer client.Close()
-		defer server.Close()
-		go func() {
-			s.handleConnection(server)
-			t.Log("ASDASD")
-		}()
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
 
 		// Write the request to the client side
-		_, err := fmt.Fprint(client, request)
+		_, err = conn.Write([]byte(request))
 		if err != nil {
 			t.Fatalf("Failed to write to client connection: %s", err)
 		}
 
-		in, err := io.ReadAll(client)
+		response, err := io.ReadAll(conn)
 		if err != nil {
 			t.Fatalf("failed to read: %s", err)
 		}
 
-		return string(in)
+		return string(response)
 	}
 
 	tests := []struct {
@@ -105,27 +112,36 @@ func TestHandleConnection(t *testing.T) {
 			data: "INVALID REQUEST\r\n\r\n",
 			want: "HTTP/1.1 400 Bad Request\r\nContent-Length: 12\r\nContent-Type: text/plain\r\n\r\nBad Request\n",
 		},
-		// {
-		// 	name: "Invalid path",
-		// 	data: "GET /unknown HTTP/1.1\r\n\r\n",
-		// 	want: "HTTP/1.1 404 Not Found\r\nContent-Length: 10\r\nContent-Type: text/plain\r\n\r\nNot Found\n",
-		// },
-		// {
-		// 	name: "Registered path",
-		// 	data: "GET /echo HTTP/1.1\r\n\r\n",
-		// 	want: "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nContent-Type: text/plain\r\n\r\nHello\n",
-		// },
+		{
+			name: "Invalid path",
+			data: "GET /unknown HTTP/1.1\r\n\r\n",
+			want: "HTTP/1.1 404 Not Found\r\nContent-Length: 10\r\nContent-Type: text/plain\r\n\r\nNot Found\n",
+		},
+		{
+			name: "Registered path",
+			data: "GET /echo HTTP/1.1\r\n\r\n",
+			want: "HTTP/1.1 200 OK\r\nContent-Length: 6\r\nContent-Type: text/plain\r\n\r\nHello\n",
+		},
 	}
 
-	select {
-	case <-started:
-		for _, tt := range tests {
-			got := sendRequest(tt.data)
-			if tt.want != got {
-				t.Errorf("Expected response %q, but got %q", tt.want, got)
-			}
+	for _, tt := range tests {
+		got := sendRequest(tt.data)
+		if tt.want != got {
+			t.Errorf("Expected response %q, but got %q", tt.want, got)
 		}
-	case <-time.After(500 * time.Millisecond):
-		t.Error("Server did not start within the expected time")
+	}
+}
+
+func TestGetPort(t *testing.T) {
+	s := NewServer(":0", nil)
+	// Start server
+	if err := s.Start(); err != nil {
+		t.Errorf("Server failed to start: %s", err)
+	}
+
+	expected := s.listener.Addr().(*net.TCPAddr).Port
+	got := s.GetPort()
+	if got != expected {
+		t.Errorf("Port is %d, got %d", expected, got)
 	}
 }

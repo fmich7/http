@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
 	"testing"
@@ -18,40 +19,43 @@ func TestTimeoutHandler(t *testing.T) {
 		time.Sleep(5000 * time.Millisecond)
 		w.Write([]byte("OK"))
 	}
-	router.HandlerFunc("GET", "/timeout", TimeoutHandler(tmpHandler, timeoutDuration))
 
 	// Define a handler that completes on time
 	fastHandler := func(r *HTTPRequest, w ResponseWriter) {
 		w.Write([]byte("Fast Response"))
 	}
+
+	router.HandlerFunc("GET", "/timeout", TimeoutHandler(tmpHandler, timeoutDuration))
 	router.HandlerFunc("GET", "/ok", TimeoutHandler(fastHandler, timeoutDuration))
+	// ---------------------------
 
-	s := NewServer(":0", router)
+	s := NewServer(":8081", router)
 
-	// Helper function to simulate client-server interaction
+	// Start server
+	if err := s.Start(); err != nil {
+		t.Errorf("Server failed to start: %s", err)
+	}
+	PORT := s.GetPort()
+	// Function to handle a connection and return the response
 	sendRequest := func(request string) string {
-		client, server := net.Pipe()
-		defer client.Close()
-		defer server.Close()
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
 
-		// Handle the connection in a separate goroutine
-		go func() {
-			s.handleConnection(server)
-		}()
-
-		// Send the request
-		_, err := client.Write([]byte(request))
+		// Write the request to the client side
+		_, err = conn.Write([]byte(request))
 		if err != nil {
 			t.Fatalf("Failed to write to client connection: %s", err)
 		}
 
-		// Read the response
-		in, err := io.ReadAll(client)
+		response, err := io.ReadAll(conn)
 		if err != nil {
 			t.Fatalf("failed to read: %s", err)
 		}
 
-		return string(in)
+		return string(response)
 	}
 
 	// Test cases
