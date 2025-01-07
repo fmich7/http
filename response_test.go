@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bytes"
 	"io"
 	"net"
 	"testing"
@@ -44,24 +43,14 @@ func TestResponseWriter_Write(t *testing.T) {
 		}
 	}()
 
-	var buf bytes.Buffer
-	tmp := make([]byte, 1024)
-
-	for {
-		n, err := clientConn.Read(tmp)
-		if err == io.EOF {
-			break
-		}
-
-		if err != nil {
-			t.Fatalf("read error: %s", err)
-		}
-
-		buf.Write(tmp[:n])
+	// Read response
+	in, err := io.ReadAll(clientConn)
+	if err != nil {
+		t.Fatalf("failed to read: %s", err)
 	}
 
 	expected := "HTTP/1.1 200 OK\r\nContent-Length: 13\r\nContent-Type: text/plain\r\n\r\nHello, world!"
-	got := buf.String()
+	got := string(in)
 	if got != expected {
 		t.Errorf("Write() output = %q, want %q", got, expected)
 	}

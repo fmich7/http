@@ -44,8 +44,6 @@ func (s *Server) Start() error {
 
 	go s.acceptLoop()
 
-	<-s.quitch
-
 	return nil
 }
 

@@ -15,7 +15,7 @@ func TestTimeoutHandler(t *testing.T) {
 
 	// Define a handler that intentionally takes too long
 	tmpHandler := func(r *HTTPRequest, w ResponseWriter) {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(5000 * time.Millisecond)
 		w.Write([]byte("OK"))
 	}
 	router.HandlerFunc("GET", "/timeout", TimeoutHandler(tmpHandler, timeoutDuration))
@@ -46,20 +46,12 @@ func TestTimeoutHandler(t *testing.T) {
 		}
 
 		// Read the response
-		var buf bytes.Buffer
-		tmp := make([]byte, 1024)
-		for {
-			n, err := client.Read(tmp)
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				t.Fatalf("Failed to read from client connection: %s", err)
-			}
-			buf.Write(tmp[:n])
+		in, err := io.ReadAll(client)
+		if err != nil {
+			t.Fatalf("failed to read: %s", err)
 		}
 
-		return buf.String()
+		return string(in)
 	}
 
 	// Test cases
@@ -85,14 +77,12 @@ func TestTimeoutHandler(t *testing.T) {
 
 	// Run test cases
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := sendRequest(tt.request)
-			if !bytes.Contains([]byte(got), []byte(tt.expectedCode)) {
-				t.Errorf("Expected status code %s, got response: %s", tt.expectedCode, got)
-			}
-			if !bytes.Contains([]byte(got), []byte(tt.expectedBody)) {
-				t.Errorf("Expected body %q, got response: %s", tt.expectedBody, got)
-			}
-		})
+		got := sendRequest(tt.request)
+		if !bytes.Contains([]byte(got), []byte(tt.expectedCode)) {
+			t.Errorf("Expected status code %s, got response: %s", tt.expectedCode, got)
+		}
+		if !bytes.Contains([]byte(got), []byte(tt.expectedBody)) {
+			t.Errorf("Expected body %q, got response: %s", tt.expectedBody, got)
+		}
 	}
 }

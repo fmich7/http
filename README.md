@@ -8,7 +8,7 @@
 
 **HTTP server made from scratch in Go 🚀✨**
 
-[Description](#📖-description) • [Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Documentation](#💡-documentation)
+[Description](#📖-description) • [Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Documentation](#💡-documentation) • [Documentation](#🛠️-testing)🛠️ Testing
 
 </div>
 
@@ -66,3 +66,9 @@ func main() {
 Explore the full documentation for this package on
 
 > [pkg.go.dev/github.com/fmich7/http](https://pkg.go.dev/github.com/fmich7/http#section-documentation)
+
+## 🛠️ Testing
+
+```bash
+make test
+```

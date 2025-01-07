@@ -1,3 +1,5 @@
+test:
+	go test -timeout 5s -race ./...
 coverage:
-	go test ./... -coverprofile=cover.out
+	go test -timeout 5s -race ./... -coverprofile=cover.out
 	go tool cover -html=cover.out
