@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -14,6 +17,9 @@ type Server struct {
 	listenAddr   string
 	listener     net.Listener
 	quitch       chan struct{}
+	startch      chan struct{}
+	running      bool
+	runningMu    sync.Mutex
 	wg           sync.WaitGroup
 	router       *HTTPRouter
 	ReadTimeout  time.Duration
@@ -25,6 +31,7 @@ func NewServer(listenAddr string, router *HTTPRouter) *Server {
 	return &Server{
 		listenAddr:   listenAddr,
 		quitch:       make(chan struct{}),
+		startch:      make(chan struct{}),
 		router:       router,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
@@ -43,6 +50,17 @@ func (s *Server) Start() error {
 
 	s.wg.Add(1)
 	go s.acceptLoop()
+	close(s.startch)
+	s.setRunning(true)
+
+	// Wait for a SIGINT or SIGTERM signal to gracefully shut down the server
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	log.Println("Shutting down server...")
+	s.Stop()
+	log.Println("Server stopped")
 
 	return nil
 }
@@ -60,10 +78,9 @@ func (s *Server) Stop() {
 
 	select {
 	case <-done:
-		return
+		s.setRunning(false)
 	case <-time.After(time.Second):
 		log.Println("Timed out waiting for connections to finish.")
-		return
 	}
 }
 
@@ -120,4 +137,18 @@ func (s *Server) handleConnection(conn net.Conn) {
 	} else {
 		handler(req, rw)
 	}
+}
+
+// setRunning method sets server running state
+func (s *Server) setRunning(state bool) {
+	s.runningMu.Lock()
+	defer s.runningMu.Unlock()
+	s.running = state
+}
+
+// setRunning method gets server running state
+func (s *Server) isRunning() bool {
+	s.runningMu.Lock()
+	defer s.runningMu.Unlock()
+	return s.running
 }

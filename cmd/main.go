@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/fmich7/http"
@@ -64,14 +63,7 @@ func main() {
 		w.Write([]byte("Successfully uploaded file"))
 	})
 
-	s.Start()
-
-	// Wait for a SIGINT or SIGTERM signal to gracefully shut down the server
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-
-	fmt.Println("Shutting down server...")
-	s.Stop()
-	fmt.Println("Server stopped.")
+	if err := s.Start(); err != nil {
+		log.Println("Error while starting server:", err)
+	}
 }

@@ -4,11 +4,11 @@
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/fmich7/http/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fmich7/http-server)](https://goreportcard.com/report/github.com/fmich7/http-server)
-![Test Coverage](https://img.shields.io/badge/test--coverage-88.2%25-blue)
+![Test Coverage](https://img.shields.io/badge/test--coverage-90%25-blue)
 
 **HTTP server made from scratch in Go 🚀✨**
 
-[Description](#📖-description) • [Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Documentation](#💡-documentation) • [Documentation](#🛠️-testing)🛠️ Testing
+[Description](#📖-description) • [Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Documentation](#💡-documentation) • [Testing](#🛠️-testing)
 
 </div>
 
@@ -24,7 +24,7 @@ This project is a lightweight and easy to use **HTTP server** written in Go, bui
 - **Request Timeout Handling**: Gracefully stop long-running requests by using `contexts`.
 - **Custom Middleware Support**: Easily extend server’s functionality by adding reusable logic to handlers.
 - **Ease of Usage**: `Start quickly` with `minimal setup` and easily add new features.
-- **Test Coverage**: `88%+` of the code is tested for reliability.
+- **Test Coverage**: `90%+` of the code is tested for reliability.
 - **RFC Compliance**: Compatibility with [HTTP/1.1](https://tools.ietf.org/html/rfc7230) standards.
 
 ## 🚀 Quick Start
@@ -41,23 +41,39 @@ go get github.com/fmich7/http
 package main
 
 import (
+	"fmt"
+
 	"github.com/fmich7/http"
 )
+
+// Logging middleware
+func LoggingMiddleware(next http.HTTPHandler) http.HTTPHandler {
+	return func(r *http.HTTPRequest, w http.ResponseWriter) {
+		fmt.Printf("Received %s request for %s\n", r.Method, r.URL)
+		// Call the next handler
+		next(r, w)
+	}
+}
+
+// Handler function for the /hello/{who} route
+// {who} is a dynamic route parameter
+func HelloHandler(r *http.HTTPRequest, w http.ResponseWriter) {
+	w.SetStatus(200)
+	w.SetHeader("Content-Type", "text/html")
+	w.Write([]byte(fmt.Sprintf("<h1>Hello, %s!</h1>", r.Params["who"])))
+}
 
 func main() {
 	router := http.NewHTTPRouter()
 	server := http.NewServer(":3000", router)
 
-	// Register a handler
-	// {who} is a dynamic route parameter
-	router.HandlerFunc("GET", "/hello/{who}", func(r *http.HTTPRequest, w http.ResponseWriter) {
-		w.SetStatus(200)
-		w.SetHeader("Content-Type", "text/html")
-		w.Write([]byte(fmt.Sprintf("<h1>Hello, %s!</h1>", r.Params["who"])))
-	})
+	// Register a handler with middleware
+	router.HandlerFunc("GET", "/hello/{who}", LoggingMiddleware(HelloHandler))
 
-	// Start the server
-	server.Start()
+	// Start the server with error handling
+	if err := server.Start(); err != nil {
+		fmt.Println("Error occurred while starting the server:", err)
+	}
 }
 ```
 
@@ -70,5 +86,8 @@ Explore the full documentation for this package on
 ## 🛠️ Testing
 
 ```bash
+# go test -v -timeout 5s -race ./...
 make test
+# Generate test coverage file
+make coverage
 ```

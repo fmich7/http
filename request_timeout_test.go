@@ -29,16 +29,12 @@ func TestTimeoutHandler(t *testing.T) {
 	router.HandlerFunc("GET", "/ok", TimeoutHandler(fastHandler, timeoutDuration))
 	// ---------------------------
 
-	s := NewServer(":8081", router)
+	s, port := startTestServer(t, router)
+	defer s.Stop()
 
-	// Start server
-	if err := s.Start(); err != nil {
-		t.Errorf("Server failed to start: %s", err)
-	}
-	PORT := s.GetPort()
 	// Function to handle a connection and return the response
 	sendRequest := func(request string) string {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Fatal(err)
 		}

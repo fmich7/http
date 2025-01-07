@@ -31,15 +31,11 @@ func TestNewServer(t *testing.T) {
 }
 
 func TestStart(t *testing.T) {
-	// Start the server
-	s := NewServer(":0", NewHTTPRouter())
-	if err := s.Start(); err != nil {
-		t.Fatal(err)
-	}
-	PORT := s.GetPort()
+	s, port := startTestServer(t, NewHTTPRouter())
+	defer s.Stop()
 
 	// Connect to the server and send a message
-	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,20 +57,12 @@ func TestStart(t *testing.T) {
 	if string(response) != expected {
 		t.Errorf("expected %q, but got %q", expected, response)
 	}
-
-	// Stop the server
-	s.Stop()
 }
 
 func TestHandleConnection(t *testing.T) {
-	s := NewServer(":0", NewHTTPRouter())
+	s, port := startTestServer(t, NewHTTPRouter())
+	defer s.Stop()
 
-	// Start server
-	if err := s.Start(); err != nil {
-		t.Errorf("Server failed to start: %s", err)
-	}
-
-	PORT := s.GetPort()
 	// Register the handler before sending any requests
 	s.router.HandlerFunc("GET", "/echo", func(r *HTTPRequest, w ResponseWriter) {
 		w.Write([]byte("Hello\n"))
@@ -82,7 +70,7 @@ func TestHandleConnection(t *testing.T) {
 
 	// Function to handle a connection and return the response
 	sendRequest := func(request string) string {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", PORT))
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -133,15 +121,32 @@ func TestHandleConnection(t *testing.T) {
 }
 
 func TestGetPort(t *testing.T) {
-	s := NewServer(":0", nil)
-	// Start server
-	if err := s.Start(); err != nil {
-		t.Errorf("Server failed to start: %s", err)
-	}
+	s, port := startTestServer(t, NewHTTPRouter())
+	defer s.Stop()
 
 	expected := s.listener.Addr().(*net.TCPAddr).Port
-	got := s.GetPort()
-	if got != expected {
-		t.Errorf("Port is %d, got %d", expected, got)
+	if port != expected {
+		t.Errorf("Port is %d, got %d", expected, port)
+	}
+}
+
+func TestServerSetAndIsRunning(t *testing.T) {
+	server := &Server{}
+
+	// Test initial state
+	if server.isRunning() {
+		t.Fatalf("Expected server to not be running, but got running=true")
+	}
+
+	// Test setting state to true
+	server.setRunning(true)
+	if !server.isRunning() {
+		t.Fatalf("Expected server to be running, but got running=false")
+	}
+
+	// Test setting state to false
+	server.setRunning(false)
+	if server.isRunning() {
+		t.Fatalf("Expected server to not be running, but got running=true")
 	}
 }
