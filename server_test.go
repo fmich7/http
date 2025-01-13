@@ -21,10 +21,6 @@ func TestNewServer(t *testing.T) {
 		t.Error("Expected router to be the one passed to NewServer")
 	}
 
-	if server.quitch == nil {
-		t.Error("Expected quitch channel to be initialized, got nil")
-	}
-
 	if server.listener != nil {
 		t.Error("Expected listener to be nil initially")
 	}
@@ -32,7 +28,7 @@ func TestNewServer(t *testing.T) {
 
 func TestStart(t *testing.T) {
 	s, port := startTestServer(t, NewHTTPRouter())
-	defer s.Stop()
+	defer s.Shutdown()
 
 	// Connect to the server and send a message
 	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
@@ -61,7 +57,7 @@ func TestStart(t *testing.T) {
 
 func TestHandleConnection(t *testing.T) {
 	s, port := startTestServer(t, NewHTTPRouter())
-	defer s.Stop()
+	defer s.Shutdown()
 
 	// Register the handler before sending any requests
 	s.router.HandlerFunc("GET", "/echo", func(r *HTTPRequest, w ResponseWriter) {
@@ -122,7 +118,7 @@ func TestHandleConnection(t *testing.T) {
 
 func TestGetPort(t *testing.T) {
 	s, port := startTestServer(t, NewHTTPRouter())
-	defer s.Stop()
+	defer s.Shutdown()
 
 	expected := s.listener.Addr().(*net.TCPAddr).Port
 	if port != expected {

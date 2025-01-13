@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -8,33 +9,38 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
 
 // Server represents an HTTP server that listens and handles requests
 type Server struct {
-	listenAddr   string
-	listener     net.Listener
-	quitch       chan struct{}
-	startch      chan struct{}
-	running      bool
-	runningMu    sync.Mutex
-	wg           sync.WaitGroup
-	router       *HTTPRouter
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
+	listenAddr      string
+	listener        net.Listener
+	startch         chan struct{}
+	running         int32
+	wg              sync.WaitGroup
+	router          *HTTPRouter
+	serverCtx       context.Context
+	cancelFunc      context.CancelFunc
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	ShutdownTimeout time.Duration
 }
 
 // NewServer returns a new server object
 func NewServer(listenAddr string, router *HTTPRouter) *Server {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
-		listenAddr:   listenAddr,
-		quitch:       make(chan struct{}),
-		startch:      make(chan struct{}),
-		router:       router,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		listenAddr:      listenAddr,
+		startch:         make(chan struct{}),
+		router:          router,
+		serverCtx:       ctx,
+		cancelFunc:      cancel,
+		ReadTimeout:     5 * time.Second,
+		WriteTimeout:    5 * time.Second,
+		ShutdownTimeout: 10 * time.Second,
 	}
 }
 
@@ -59,15 +65,15 @@ func (s *Server) Start() error {
 	<-sigChan
 
 	log.Println("Shutting down server...")
-	s.Stop()
-	log.Println("Server stopped")
+	s.Shutdown()
+	log.Println("Server Shutdownped")
 
 	return nil
 }
 
-// Stop method stops the server
-func (s *Server) Stop() {
-	close(s.quitch)
+// Shutdown method Shutdowns the server
+func (s *Server) Shutdown() {
+	s.cancelFunc()
 	s.listener.Close()
 
 	done := make(chan struct{})
@@ -79,8 +85,8 @@ func (s *Server) Stop() {
 	select {
 	case <-done:
 		s.setRunning(false)
-	case <-time.After(time.Second):
-		log.Println("Timed out waiting for connections to finish.")
+	case <-time.After(s.ShutdownTimeout):
+		log.Println("Timed out waiting for connections to finish")
 	}
 }
 
@@ -90,7 +96,8 @@ func (s *Server) acceptLoop() {
 
 	for {
 		select {
-		case <-s.quitch:
+		case <-s.serverCtx.Done():
+			log.Println("Closing accepting loop")
 			return
 		default:
 			conn, err := s.listener.Accept()
@@ -98,6 +105,7 @@ func (s *Server) acceptLoop() {
 				continue
 			}
 			log.Println("New request from:", conn.RemoteAddr())
+			s.wg.Add(1)
 			go s.handleConnection(conn)
 		}
 	}
@@ -111,6 +119,7 @@ func (s *Server) GetPort() int {
 // handleConnections handles requests
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+	defer s.wg.Done()
 
 	req, err := ParseRequest(conn, s.ReadTimeout)
 	rw := NewResponseWriter(conn, s.WriteTimeout)
@@ -128,6 +137,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		return
 	}
 
+	req.ctx = s.serverCtx
 	handler := s.router.GetHandler(req)
 
 	if handler == nil {
@@ -141,14 +151,14 @@ func (s *Server) handleConnection(conn net.Conn) {
 
 // setRunning method sets server running state
 func (s *Server) setRunning(state bool) {
-	s.runningMu.Lock()
-	defer s.runningMu.Unlock()
-	s.running = state
+	if state {
+		atomic.StoreInt32(&s.running, 1)
+	} else {
+		atomic.StoreInt32(&s.running, 0)
+	}
 }
 
 // setRunning method gets server running state
 func (s *Server) isRunning() bool {
-	s.runningMu.Lock()
-	defer s.runningMu.Unlock()
-	return s.running
+	return atomic.LoadInt32(&s.running) == 1
 }

@@ -10,11 +10,11 @@ import (
 )
 
 func SomeHandler(r *http.HTTPRequest, w http.ResponseWriter) {
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Second)
 	w.Write([]byte(r.Params["asd"]))
 }
 
-func main() {
+func main2() {
 	router := http.NewHTTPRouter()
 	s := http.NewServer(":3000", router)
 
@@ -26,7 +26,7 @@ func main() {
 	})
 
 	// Params with timeout
-	router.HandlerFunc("GET", "/echo/{asd}", http.TimeoutHandler(SomeHandler, 5*time.Second))
+	router.HandlerFunc("GET", "/echo/{asd}", http.TimeoutHandler(SomeHandler, 100*time.Second))
 
 	// Download a file
 	router.HandlerFunc("GET", "/static/{file}", func(r *http.HTTPRequest, w http.ResponseWriter) {

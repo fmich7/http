@@ -30,7 +30,7 @@ func TestTimeoutHandler(t *testing.T) {
 	// ---------------------------
 
 	s, port := startTestServer(t, router)
-	defer s.Stop()
+	defer s.Shutdown()
 
 	// Function to handle a connection and return the response
 	sendRequest := func(request string) string {
