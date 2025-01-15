@@ -3,18 +3,18 @@
 # http
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/fmich7/http/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fmich7/http-server)](https://goreportcard.com/report/github.com/fmich7/http-server)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fmich7/http)](https://goreportcard.com/report/github.com/fmich7/http)
 ![Test Coverage](https://img.shields.io/badge/test--coverage-90%25-blue)
 
 **HTTP server made from scratch in Go 🚀✨**
 
-[Description](#📖-description) • [Features](#✨-features) • [Quick Start](#🚀-quick-start) • [Documentation](#💡-documentation) • [Testing](#🛠️-testing)
+[Description](#-description) • [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Testing](#%EF%B8%8F-testing)
 
 </div>
 
 ## 📖 Description
 
-This project is a lightweight and easy to use **HTTP server** written in Go, built to follow the [RFC 7230](https://tools.ietf.org/html/rfc7230) (HTTP/1.1) standard. It's designed to make building web APIs and applications simple and straightforward while maintaining great performance and flexibility.
+This project is a lightweight and easy to use **HTTP server** written in Go that handles **TCP connections** and implements the [RFC 7230](https://tools.ietf.org/html/rfc7230) (HTTP/1.1) standard. It's designed to make building web APIs and applications simple and straightforward.
 
 ## ✨ Features
 
@@ -22,7 +22,8 @@ This project is a lightweight and easy to use **HTTP server** written in Go, bui
 - **Routing**: `Dynamic` and `static` route handling.
 - **Built-in Timeouts**: Automatically `close slow connections` and prevent resource locks.
 - **Request Timeout Handling**: Gracefully stop long-running requests by using `contexts`.
-- **Custom Middleware Support**: Easily extend server’s functionality by adding reusable logic to handlers.
+- **Custom Middleware Support**: Easily extend server’s functionality by adding `reusable logic` to _handlers_.
+- **Graceful Shutdown**: Ensures _safe server termination_, allowing ongoing requests to `complete` or `time out` before shutting down.
 - **Ease of Usage**: `Start quickly` with `minimal setup` and easily add new features.
 - **Test Coverage**: `90%+` of the code is tested for reliability.
 - **RFC Compliance**: Compatibility with [HTTP/1.1](https://tools.ietf.org/html/rfc7230) standards.
@@ -70,12 +71,14 @@ func main() {
 	// Register a handler with middleware
 	router.HandlerFunc("GET", "/hello/{who}", LoggingMiddleware(HelloHandler))
 
-	// Start the server with error handling
+	// Start the server and automatically handle graceful shutdown
 	if err := server.Start(); err != nil {
 		fmt.Println("Error occurred while starting the server:", err)
 	}
 }
 ```
+
+> View more examples in the `/examples` directory
 
 ## 💡 Documentation
 
